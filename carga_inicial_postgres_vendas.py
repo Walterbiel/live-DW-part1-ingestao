@@ -1,8 +1,9 @@
 import psycopg2
 import pandas as pd
+from io import StringIO
 from tqdm import tqdm
 
-# Conexão
+# Conexão com o PostgreSQL
 conn = psycopg2.connect(
     dbname="general_rtxt",
     user="postgresadmin",
@@ -14,32 +15,38 @@ conn = psycopg2.connect(
 conn.autocommit = True
 cur = conn.cursor()
 
-# TRUNCATE
-print("🔁 Limpando bronze.vendas...")
-cur.execute("TRUNCATE TABLE bronze.vendas")
-print("✅ Tabela bronze.vendas truncada.")
-
-# Leitura em chunks
-chunk_size = 100_000
-colunas = [
-    "id_venda", "id_produto", "preco", "quantidade", "data_venda",
-    "id_cliente", "id_loja", "id_vendedor", "meio_pagamento", "parcelamento"
-]
-placeholders = ','.join(['%s'] * len(colunas))
-sql = f"INSERT INTO bronze.vendas ({', '.join(colunas)}) VALUES ({placeholders})"
-
-# Inserir em chunks
 try:
-    for i, chunk in enumerate(pd.read_csv("base_vendas_2M.csv", chunksize=chunk_size)):
-        values = [tuple(row[col] for col in colunas) for _, row in chunk.iterrows()]
-        tqdm.write(f"📦 Inserindo chunk {i+1}...")
-        cur.executemany(sql, values)
-        tqdm.write(f"✅ Chunk {i+1} inserido.")
+    tqdm.write("🔁 TRUNCATE bronze.vendas...")
+    cur.execute('TRUNCATE TABLE bronze.vendas')
+    tqdm.write("✅ Tabela limpa com sucesso.")
+
+    tqdm.write("📥 Lendo CSV...")
+    df_vendas = pd.read_csv("base_vendas_2M.csv")
+
+    colunas = [
+        "id_venda", "id_produto", "preco", "quantidade", "data_venda",
+        "id_cliente", "id_loja", "id_vendedor", "meio_pagamento", "parcelamento"
+    ]
+    df_vendas = df_vendas[colunas]
+
+    tqdm.write("📦 Convertendo dataframe para CSV em memória...")
+    buffer = StringIO()
+    df_vendas.to_csv(buffer, index=False, header=False)
+    buffer.seek(0)
+
+    tqdm.write("🚀 Executando COPY para bronze.vendas...")
+    cur.copy_expert(f"""
+        COPY bronze.vendas ({', '.join(colunas)})
+        FROM STDIN WITH (FORMAT CSV)
+    """, buffer)
+
+    tqdm.write("✅ Inserção concluída com sucesso.")
+
 except Exception as e:
-    tqdm.write(f"❌ Erro ao inserir vendas: {e}")
+    tqdm.write(f"❌ Erro durante inserção: {e}")
     conn.rollback()
 
-# Encerrar conexão
-cur.close()
-conn.close()
-print("🏁 Carga da fato vendas finalizada.")
+finally:
+    cur.close()
+    conn.close()
+    tqdm.write("🏁 Processo finalizado.")
