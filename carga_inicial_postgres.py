@@ -38,7 +38,7 @@ def inserir_dados(df, tabela, colunas):
         tqdm.write(f"❌ Erro ao inserir bronze.{tabela}: {e}")
         conn.rollback()
 
-# Inserções com colunas corretas
+# Inserções 
 inserir_dados(df_lojas, "lojas", [
     "id_loja", "nome_loja", "logradouro", "numero", "bairro", "cidade", "estado", "cep"
 ])
