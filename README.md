@@ -7,6 +7,8 @@ Projeto‑laboratório usado na live **“Data Warehouse ao Vivo – Parte 1�
 3. Disponibilizar um **endpoint FastAPI** que entrega lotes de vendas;  
 4. **Orquestrar** ingestão de dados com **Apache Airflow**.
 
+### Criar banco de dados postgres local ou pelo Render !
+
 ---
 
 ## Pré‑requisitos
@@ -24,9 +26,6 @@ Projeto‑laboratório usado na live **“Data Warehouse ao Vivo – Parte 1�
 Instale as dependências:
 
 ```bash
-# 2 ▸ crie e ative o ambiente
-# 0 ▸ (opcional) limpar de vez
-rm -rf .venv
 
 # 1 ▸ criar e ativar o venv
 python3.11 -m venv .venv
@@ -34,85 +33,12 @@ source .venv/bin/activate    # Windows: .venv\Scripts\activate
 
 # 2 ▸ atualizar pip
 pip install --upgrade pip
-
-# 3 ▸ instalar **APENAS** o Airflow com o constraints oficial
-CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.4/constraints-3.11.txt"
-pip install --constraint "$CONSTRAINTS_URL" "apache-airflow[postgres]==2.8.4"
-
-# 4 ▸ instalar (ou atualizar) o resto SEM constraints
-pip install fastapi>=0.112,<0.113 \
-            uvicorn[standard]>=0.28,<0.29 \
-            email-validator>=2.0,<3.0 \
-            numpy>=1.26,<2.0 \
-            pandas>=2.1,<3.0 \
-            psycopg2-binary==2.9.9 \
-            SQLAlchemy>=1.4,<2.0 \
-            openpyxl>=3.1,<3.3
+pip install -r requirements.txt
 ```
 
 ---
 
 ## Passo a passo
-
-### 1. Gerar bases CSV
-
-```bash
-python gerador_base_venda.py          # gera base_vendas_2M.csv
-python gerador_base_devolucoes.py     # gera base_devolucoes.csv
-```
-
-### 2. Carga inicial no PostgreSQL
-
-```bash
-python carga_inicial_postgres.py
-```
-
-A conexão usa o DSN definido no próprio script (`DB_URL`). Ajuste conforme seu banco.
-
-### 3. API de vendas em lote
-
-```bash
-pip install "email-validator<2.0,>=1.0.5"
-
-
-uvicorn api_vendas_batch:app --reload --port 8001
-```
-
-* **Endpoint:** `GET /vendas/{quantidade}`  
-* **Exemplo:** `http://localhost:8000/vendas/500`
-
-### 4. Orquestração com Airflow
-
-```bash
-airflow db migrate        # primeira execução
-airflow users create -u admin -p admin -r Admin -f Admin -l User -e admin@example.com
-airflow scheduler -D      # em background
-airflow webserver --port 8080
-```
-
-Acesse **http://localhost:8080** e ative a DAG `ingestao_vendas`.
-
----
-
-## Estrutura de pastas
-
-```
-DW_AIRFLOW_DBT_PART_ONE/
-├── dags/                     # DAGs do Airflow
-├── data/
-│   ├── base_vendas_2M.csv
-│   └── base_devolucoes.csv
-├── scripts/
-│   ├── gerador_base_venda.py
-│   ├── gerador_base_devolucoes.py
-│   ├── api_vendas_batch.py
-│   └── carga_inicial_postgres.py
-├── requirements.txt
-└── README.md   ← você está aqui
-```
-
----
-ubir dados para o postgres
 
 # Scripts DDL – Camada **bronze**
 
@@ -221,4 +147,32 @@ CREATE TABLE IF NOT EXISTS bronze.vendedores (
     data_nascimento DATE
 );
 ```
+---
+
+
+### 1. Gerar bases CSV
+
+```bash
+python gerador_base_venda.py          # gera base_vendas_2M.csv
+python gerador_base_devolucoes.py     # gera base_devolucoes.csv
+```
+
+### 2. Carga inicial no PostgreSQL
+
+```bash
+python carga_inicial_postgres.py
+```
+
+A conexão usa o DSN definido no próprio script (`DB_URL`). Ajuste conforme seu banco.
+
+### 3. API de vendas em lote
+
+```bash
+
+uvicorn api_vendas_batch:app --reload --port 8001
+```
+
+* **Endpoint:** `GET /vendas/{quantidade}`  
+* **Exemplo:** `http://localhost:8001/vendas/500`
+
 ---

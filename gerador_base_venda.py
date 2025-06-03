@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 # 1) Parâmetros gerais
-TOTAL_LINHAS = 2_000_000
+TOTAL_LINHAS = 500000
 np.random.seed(42)
 
 # 2) Geração dos tamanhos de venda (1–8 itens) até somar ~2M
