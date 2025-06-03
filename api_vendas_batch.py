@@ -52,6 +52,7 @@ def gerar_e_inserir_vendas():
     parcelamento[big] = np.random.randint(1, 4, size=big.sum())
 
     dados = list(zip(
+        sale_ids.astype(int).tolist(),                     # id_venda
         id_produto.astype(int).tolist(),
         preco.astype(float).tolist(),
         quantidade.astype(int).tolist(),
@@ -75,7 +76,7 @@ def gerar_e_inserir_vendas():
 
     sql = """
         INSERT INTO bronze.vendas (
-            id_produto, preco, quantidade, data_venda,
+            id_venda, id_produto, preco, quantidade, data_venda,
             id_cliente, id_loja, id_vendedor,
             meio_pagamento, parcelamento
         )
