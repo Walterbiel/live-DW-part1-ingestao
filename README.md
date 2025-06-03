@@ -5,9 +5,7 @@ Projeto‑laboratório usado na live **“Data Warehouse ao Vivo – Parte 1�
 1. **Gerar dados sintéticos** de vendas e devoluções;  
 2. Carregar a camada **bronze** em PostgreSQL;  
 3. Disponibilizar um **endpoint FastAPI** que entrega lotes de vendas;  
-4. **Orquestrar** todas as rotinas com **Apache Airflow**.
-
-> A Parte 2 (DBT, Docker Compose e camadas *silver/gold*) será publicada em breve.
+4. **Orquestrar** ingestão de dados com **Apache Airflow**.
 
 ---
 
@@ -26,9 +24,30 @@ Projeto‑laboratório usado na live **“Data Warehouse ao Vivo – Parte 1�
 Instale as dependências:
 
 ```bash
+# 2 ▸ crie e ative o ambiente
+# 0 ▸ (opcional) limpar de vez
+rm -rf .venv
+
+# 1 ▸ criar e ativar o venv
+python3.11 -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
+
+# 2 ▸ atualizar pip
 pip install --upgrade pip
-CONSTRAINTS="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.4/constraints-3.11.txt"
-pip install --constraint "$CONSTRAINTS" -r requirements.txt
+
+# 3 ▸ instalar **APENAS** o Airflow com o constraints oficial
+CONSTRAINTS_URL="https://raw.githubusercontent.com/apache/airflow/constraints-2.8.4/constraints-3.11.txt"
+pip install --constraint "$CONSTRAINTS_URL" "apache-airflow[postgres]==2.8.4"
+
+# 4 ▸ instalar (ou atualizar) o resto SEM constraints
+pip install fastapi>=0.112,<0.113 \
+            uvicorn[standard]>=0.28,<0.29 \
+            email-validator>=2.0,<3.0 \
+            numpy>=1.26,<2.0 \
+            pandas>=2.1,<3.0 \
+            psycopg2-binary==2.9.9 \
+            SQLAlchemy>=1.4,<2.0 \
+            openpyxl>=3.1,<3.3
 ```
 
 ---
@@ -53,7 +72,10 @@ A conexão usa o DSN definido no próprio script (`DB_URL`). Ajuste conforme seu
 ### 3. API de vendas em lote
 
 ```bash
-uvicorn api_vendas_batch:app --reload --port 8000
+pip install "email-validator<2.0,>=1.0.5"
+
+
+uvicorn api_vendas_batch:app --reload --port 8001
 ```
 
 * **Endpoint:** `GET /vendas/{quantidade}`  
